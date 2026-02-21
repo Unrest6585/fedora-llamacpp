@@ -13,7 +13,6 @@ BuildRequires:  gcc-c++
 BuildRequires:  ninja-build
 BuildRequires:  vulkan-devel
 BuildRequires:  glslang
-BuildRequires:  shaderc
 BuildRequires:  libcurl-devel
 
 Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
