@@ -44,7 +44,18 @@ ARGS=("-V")
 STAGE="" TARGET_ENV="" OUTPUT="" INPUTS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -fshader-stage=*) STAGE="${1#-fshader-stage=}" ;;
+        -fshader-stage=*)
+            STAGE="${1#-fshader-stage=}"
+            # glslangValidator uses abbreviated stage names (comp, vert, frag, ...)
+            case "$STAGE" in
+                compute)     STAGE="comp" ;;
+                vertex)      STAGE="vert" ;;
+                fragment)    STAGE="frag" ;;
+                geometry)    STAGE="geom" ;;
+                tesscontrol) STAGE="tesc" ;;
+                tesseval)    STAGE="tese" ;;
+            esac
+            ;;
         --target-env=*)   TARGET_ENV="${1#--target-env=}" ;;
         -o)               shift; OUTPUT="$1" ;;
         -I*|-D*)          ARGS+=("$1") ;;
