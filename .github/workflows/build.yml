@@ -38,7 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.check.outputs.tag }}
-      build_num: ${{ steps.check.outputs.build_num }}
       should_build: ${{ steps.check.outputs.should_build }}
     steps:
       - name: Checkout
@@ -57,11 +56,8 @@ jobs:
             exit 1
           fi
 
-          # Strip 'b' prefix to get the numeric build number for RPM Version
-          BUILD_NUM="${TAG#b}"
-          echo "Latest release: ${TAG} (build_num=${BUILD_NUM})"
+          echo "Latest release: ${TAG}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "build_num=${BUILD_NUM}" >> $GITHUB_OUTPUT
 
           # Read last built tag from state file
           LAST_TAG=""
@@ -115,15 +111,16 @@ jobs:
             -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
           echo "Downloaded: ${TAG}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${TAG}.tar.gz | cut -f1))"
 
-      - name: Copy spec file
-        run: cp $GITHUB_WORKSPACE/llama-cpp.spec ~/rpmbuild/SPECS/
+      - name: Copy and version spec file
+        run: |
+          cp $GITHUB_WORKSPACE/llama-cpp.spec ~/rpmbuild/SPECS/
+          # Hardcode the version into the spec so it survives COPR's SRPM rebuild
+          sed -i "s/^Version:.*/Version:        ${{ needs.check-version.outputs.tag }}/" \
+            ~/rpmbuild/SPECS/llama-cpp.spec
 
       - name: Build SRPM
         run: |
-          BUILD_NUM="${{ needs.check-version.outputs.build_num }}"
-          rpmbuild -bs \
-            --define "llama_build_num ${BUILD_NUM}" \
-            ~/rpmbuild/SPECS/llama-cpp.spec
+          rpmbuild -bs ~/rpmbuild/SPECS/llama-cpp.spec
 
           SRPM=$(ls -1t ~/rpmbuild/SRPMS/llama-cpp-*.src.rpm | head -1)
           echo "Built SRPM: ${SRPM}"

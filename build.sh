@@ -16,8 +16,7 @@ if [ -z "${TAG}" ]; then
   exit 1
 fi
 
-BUILD_NUM="${TAG#b}"
-echo "==> Latest release: ${TAG} (build_num=${BUILD_NUM})"
+echo "==> Latest release: ${TAG}"
 
 mkdir -p "${BUILD_DIR}"
 rpmdev-setuptree
@@ -26,13 +25,12 @@ echo "==> Downloading source tarball..."
 wget "https://github.com/ggerganov/llama.cpp/archive/refs/tags/${TAG}.tar.gz" \
   -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
 
-echo "==> Copying spec file..."
+echo "==> Copying and versioning spec file..."
 cp "${SCRIPT_DIR}/llama-cpp.spec" ~/rpmbuild/SPECS/
+sed -i "s/^Version:.*/Version:        ${TAG}/" ~/rpmbuild/SPECS/llama-cpp.spec
 
 echo "==> Building SRPM..."
-rpmbuild -bs \
-  --define "llama_build_num ${BUILD_NUM}" \
-  ~/rpmbuild/SPECS/llama-cpp.spec
+rpmbuild -bs ~/rpmbuild/SPECS/llama-cpp.spec
 
 SRPM=$(ls -1t ~/rpmbuild/SRPMS/llama-cpp-*.src.rpm | head -1)
 echo "==> Created: ${SRPM}"

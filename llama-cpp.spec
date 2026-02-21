@@ -1,15 +1,12 @@
-# Build number from upstream release tag bNNNN
-# Build with: rpmbuild --define "llama_build_num NNNN" -bs llama-cpp.spec
-%{!?llama_build_num: %global llama_build_num 0}
-%global build_tag b%{llama_build_num}
-
+# Version is set to the upstream release tag (e.g. b5153) by the build workflow.
+# For local builds, run build.sh which patches this line automatically.
 Name:           llama-cpp
-Version:        %{llama_build_num}
+Version:        b0
 Release:        1%{?dist}
 Summary:        LLM inference engine in C/C++ with Vulkan GPU acceleration
 License:        MIT
 URL:            https://github.com/ggerganov/llama.cpp
-Source0:        https://github.com/ggerganov/llama.cpp/archive/refs/tags/%{build_tag}.tar.gz
+Source0:        https://github.com/ggerganov/llama.cpp/archive/refs/tags/%{version}.tar.gz
 
 BuildRequires:  cmake >= 3.14
 BuildRequires:  gcc-c++
@@ -35,7 +32,7 @@ Requires:       vulkan-loader
 Shared libraries for llama.cpp, including the Vulkan compute backend.
 
 %prep
-%autosetup -n llama.cpp-%{build_tag}
+%autosetup -n llama.cpp-%{version}
 
 %build
 %cmake \
