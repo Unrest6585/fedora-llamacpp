@@ -34,6 +34,37 @@ Shared libraries for llama.cpp, including the Vulkan compute backend.
 %autosetup -n llama.cpp-%{version}
 
 %build
+# Fedora 43 ships glslangValidator (from the glslang package) but not glslc.
+# llama.cpp's cmake calls find_package(Vulkan REQUIRED COMPONENTS glslc), so
+# we provide a shim named glslc that translates its arguments to glslangValidator.
+mkdir -p %{_builddir}/glslc-shim
+cat > %{_builddir}/glslc-shim/glslc << 'GLSLC_SHIM_EOF'
+#!/bin/bash
+ARGS=("-V")
+STAGE="" TARGET_ENV="" OUTPUT="" INPUTS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -fshader-stage=*) STAGE="${1#-fshader-stage=}" ;;
+        --target-env=*)   TARGET_ENV="${1#--target-env=}" ;;
+        -o)               shift; OUTPUT="$1" ;;
+        -I*|-D*)          ARGS+=("$1") ;;
+        -O|-O0|-O1|-O2|-MD|-MP|-Werror) ;;
+        -MF|-MT|-x)       shift ;;
+        --)               shift; INPUTS+=("$@"); break ;;
+        -*)               ;;
+        *)                INPUTS+=("$1") ;;
+    esac
+    shift
+done
+[[ -n "$TARGET_ENV" ]] && ARGS+=("--target-env" "$TARGET_ENV")
+[[ -n "$STAGE" ]]      && ARGS+=("-S" "$STAGE")
+[[ -n "$OUTPUT" ]]     && ARGS+=("-o" "$OUTPUT")
+ARGS+=("${INPUTS[@]}")
+exec /usr/bin/glslangValidator "${ARGS[@]}"
+GLSLC_SHIM_EOF
+chmod +x %{_builddir}/glslc-shim/glslc
+export PATH="%{_builddir}/glslc-shim:${PATH}"
+
 %cmake \
     -DGGML_VULKAN=ON \
     -DLLAMA_CURL=ON \
