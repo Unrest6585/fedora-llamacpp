@@ -55,7 +55,7 @@ Add these to your repository (Settings → Secrets and variables → Actions):
 - **On push** to `llama-cpp.spec` or workflow files — rebuilds with spec changes
 - **Manually** via workflow_dispatch (with optional force build)
 
-## Local Build
+## Local Build (Vulkan)
 
 ```bash
 # Install build dependencies
@@ -76,7 +76,22 @@ copr-cli build llama-cpp-vulkan llama-cpp-*.src.rpm \
   --nowait
 ```
 
-## Build Dependencies (for local builds)
+## Local Build (ROCm)
+
+If you have supported AMD hardware and prefer the ROCm backend for better performance, you can build the ROCm version locally. This will compile the binary RPMs directly on your machine.
+
+```bash
+# Install ROCm build dependencies
+sudo dnf install cmake gcc-c++ ninja-build rocm-hip-devel rocblas-devel libcurl-devel rpm-build rpmdevtools wget python3
+
+# Run the ROCm build script
+./build-rocm.sh
+
+# Install the resulting binary RPMs
+sudo dnf install ~/rpmbuild/RPMS/x86_64/llama-cpp-rocm-*.rpm
+```
+
+## Build Dependencies (for local Vulkan builds)
 
 ```bash
 sudo dnf install cmake gcc-c++ ninja-build vulkan-devel glslang shaderc libcurl-devel
