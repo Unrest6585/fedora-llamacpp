@@ -5,8 +5,8 @@ Version:        b0
 Release:        1%{?dist}
 Summary:        LLM inference engine in C/C++ with Vulkan GPU acceleration
 License:        MIT
-URL:            https://github.com/ggerganov/llama.cpp
-Source0:        https://github.com/ggerganov/llama.cpp/archive/refs/tags/%{version}.tar.gz
+URL:            https://github.com/ggml-org/llama.cpp
+Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/%{version}.tar.gz
 
 BuildRequires:  cmake >= 3.14
 BuildRequires:  gcc-c++

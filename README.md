@@ -84,4 +84,4 @@ sudo dnf install cmake gcc-c++ ninja-build vulkan-devel glslang shaderc libcurl-
 
 ## Upstream
 
-- https://github.com/ggerganov/llama.cpp
+- https://github.com/ggml-org/llama.cpp

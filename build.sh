@@ -8,7 +8,7 @@ BUILD_DIR="${SCRIPT_DIR}/build"
 echo "==> Fetching latest llama.cpp release tag..."
 TAG=$(curl -sf \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
+  https://api.github.com/repos/ggml-org/llama.cpp/releases/latest \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
 
 if [ -z "${TAG}" ]; then
@@ -22,7 +22,7 @@ mkdir -p "${BUILD_DIR}"
 rpmdev-setuptree
 
 echo "==> Downloading source tarball..."
-wget "https://github.com/ggerganov/llama.cpp/archive/refs/tags/${TAG}.tar.gz" \
+wget "https://github.com/ggml-org/llama.cpp/archive/refs/tags/${TAG}.tar.gz" \
   -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
 
 echo "==> Copying and versioning spec file..."
