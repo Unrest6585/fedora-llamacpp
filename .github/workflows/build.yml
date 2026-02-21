@@ -95,21 +95,13 @@ jobs:
             rpm-build \
             rpmdevtools \
             python3-copr \
-            copr-cli \
-            wget
+            copr-cli
 
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup RPM build tree
         run: rpmdev-setuptree
-
-      - name: Download llama.cpp source tarball
-        run: |
-          TAG="${{ needs.check-version.outputs.tag }}"
-          wget "https://github.com/${{ env.LLAMA_REPO }}/archive/refs/tags/${TAG}.tar.gz" \
-            -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
-          echo "Downloaded: ${TAG}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${TAG}.tar.gz | cut -f1))"
 
       - name: Copy and version spec file
         run: |
@@ -120,7 +112,11 @@ jobs:
 
       - name: Build SRPM
         run: |
-          rpmbuild -bs ~/rpmbuild/SPECS/llama-cpp.spec
+          # Do NOT pre-download the tarball. rpmbuild -bs --nodeps builds a
+          # source-less SRPM (~30 KB) with the Source0 URL intact. COPR fetches
+          # the tarball from GitHub itself during the mock build, keeping the
+          # SRPM small and avoiding COPR's dist-git download timeouts on large files.
+          rpmbuild -bs --nodeps ~/rpmbuild/SPECS/llama-cpp.spec
 
           SRPM=$(ls -1t ~/rpmbuild/SRPMS/llama-cpp-*.src.rpm | head -1)
           echo "Built SRPM: ${SRPM}"
