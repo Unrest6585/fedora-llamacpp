@@ -92,16 +92,25 @@ jobs:
         run: |
           dnf install -y \
             git \
+            gh \
             rpm-build \
             rpmdevtools \
             python3-copr \
-            copr-cli
+            copr-cli \
+            wget
 
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup RPM build tree
         run: rpmdev-setuptree
+
+      - name: Download llama.cpp source tarball
+        run: |
+          TAG="${{ needs.check-version.outputs.tag }}"
+          wget "https://github.com/${{ env.LLAMA_REPO }}/archive/refs/tags/${TAG}.tar.gz" \
+            -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
+          echo "Downloaded: ${TAG}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${TAG}.tar.gz | cut -f1))"
 
       - name: Copy and version spec file
         run: |
@@ -112,11 +121,7 @@ jobs:
 
       - name: Build SRPM
         run: |
-          # Do NOT pre-download the tarball. rpmbuild -bs --nodeps builds a
-          # source-less SRPM (~30 KB) with the Source0 URL intact. COPR fetches
-          # the tarball from GitHub itself during the mock build, keeping the
-          # SRPM small and avoiding COPR's dist-git download timeouts on large files.
-          rpmbuild -bs --nodeps ~/rpmbuild/SPECS/llama-cpp.spec
+          rpmbuild -bs ~/rpmbuild/SPECS/llama-cpp.spec
 
           SRPM=$(ls -1t ~/rpmbuild/SRPMS/llama-cpp-*.src.rpm | head -1)
           echo "Built SRPM: ${SRPM}"
@@ -129,6 +134,27 @@ jobs:
           name: llama-cpp-srpm
           path: "*.src.rpm"
           retention-days: 7
+
+      - name: Publish SRPM to GitHub Releases
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd $GITHUB_WORKSPACE
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          TAG="${{ needs.check-version.outputs.tag }}"
+          SRPM="$GITHUB_WORKSPACE/${{ env.BUILT_SRPM }}"
+          # Replace any existing release for this tag so re-runs work cleanly
+          gh release delete "${TAG}" --yes 2>/dev/null || true
+          gh release create "${TAG}" \
+            --target main \
+            --title "llama-cpp ${TAG}" \
+            --notes "Source RPM for llama-cpp ${TAG}" \
+            "${SRPM}"
+          SRPM_URL=$(gh release view "${TAG}" \
+            --json assets --jq '.assets[0].browserDownloadUrl')
+          echo "SRPM_URL=${SRPM_URL}" >> $GITHUB_ENV
+          echo "SRPM published to: ${SRPM_URL}"
 
       - name: Setup COPR credentials
         if: github.event_name != 'pull_request'
@@ -145,12 +171,14 @@ jobs:
       - name: Upload to COPR
         if: github.event_name != 'pull_request'
         run: |
-          SRPM=$(ls -1 $GITHUB_WORKSPACE/*.src.rpm | head -1)
+          # Use buildurl so COPR's dist-git importer fetches from GitHub Releases
+          # (reliable CDN) rather than from COPR's own storage, which consistently
+          # drops large file downloads with IncompleteRead errors.
           CHROOT_ARGS=()
           for chroot in ${{ env.CHROOTS }}; do
             CHROOT_ARGS+=(--chroot "${chroot}")
           done
-          copr-cli build ${{ env.COPR_PROJECT }} "${SRPM}" \
+          copr-cli buildurl ${{ env.COPR_PROJECT }} "${{ env.SRPM_URL }}" \
             "${CHROOT_ARGS[@]}" \
             --timeout 7200 \
             --nowait
