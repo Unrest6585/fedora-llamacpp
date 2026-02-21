@@ -151,8 +151,8 @@ jobs:
             --title "llama-cpp ${TAG}" \
             --notes "Source RPM for llama-cpp ${TAG}" \
             "${SRPM}"
-          SRPM_URL=$(gh release view "${TAG}" \
-            --json assets --jq '.assets[0].browserDownloadUrl')
+          # Construct the download URL directly — deterministic, no JSON parsing
+          SRPM_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${{ env.BUILT_SRPM }}"
           echo "SRPM_URL=${SRPM_URL}" >> $GITHUB_ENV
           echo "SRPM published to: ${SRPM_URL}"
 
@@ -178,7 +178,7 @@ jobs:
           for chroot in ${{ env.CHROOTS }}; do
             CHROOT_ARGS+=(--chroot "${chroot}")
           done
-          copr-cli buildurl ${{ env.COPR_PROJECT }} "${{ env.SRPM_URL }}" \
+          copr-cli build ${{ env.COPR_PROJECT }} "${{ env.SRPM_URL }}" \
             "${CHROOT_ARGS[@]}" \
             --timeout 7200 \
             --nowait
