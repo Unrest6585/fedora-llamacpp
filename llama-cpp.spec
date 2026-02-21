@@ -71,7 +71,16 @@ done
 [[ -n "$STAGE" ]]      && ARGS+=("-S" "$STAGE")
 [[ -n "$OUTPUT" ]]     && ARGS+=("-o" "$OUTPUT")
 ARGS+=("${INPUTS[@]}")
-exec /usr/bin/glslangValidator "${ARGS[@]}"
+# vulkan-shaders-gen treats ANY stderr output as a compilation failure (even
+# warnings).  glslangValidator writes informational/warning text to stderr on
+# success, while real glslc is silent.  Suppress stderr when the compilation
+# succeeds so that vulkan-shaders-gen correctly picks up the compiled SPIR-V.
+_stderr_tmp=$(mktemp)
+/usr/bin/glslangValidator "${ARGS[@]}" 2>"$_stderr_tmp"
+_rc=$?
+[ $_rc -ne 0 ] && cat "$_stderr_tmp" >&2
+rm -f "$_stderr_tmp"
+exit $_rc
 GLSLC_SHIM_EOF
 chmod +x %{_builddir}/glslc-shim/glslc
 export PATH="%{_builddir}/glslc-shim:${PATH}"
