@@ -12,7 +12,7 @@ BuildRequires:  cmake >= 3.14
 BuildRequires:  gcc-c++
 BuildRequires:  ninja-build
 BuildRequires:  vulkan-devel
-BuildRequires:  glslang
+BuildRequires:  glslc
 BuildRequires:  libcurl-devel
 
 Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
@@ -34,57 +34,6 @@ Shared libraries for llama.cpp, including the Vulkan compute backend.
 %autosetup -n llama.cpp-%{version}
 
 %build
-# Fedora 43 ships glslangValidator (from the glslang package) but not glslc.
-# llama.cpp's cmake calls find_package(Vulkan REQUIRED COMPONENTS glslc), so
-# we provide a shim named glslc that translates its arguments to glslangValidator.
-mkdir -p %{_builddir}/glslc-shim
-cat > %{_builddir}/glslc-shim/glslc << 'GLSLC_SHIM_EOF'
-#!/bin/bash
-ARGS=("-V")
-STAGE="" TARGET_ENV="" OUTPUT="" INPUTS=()
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -fshader-stage=*)
-            STAGE="${1#-fshader-stage=}"
-            # glslangValidator uses abbreviated stage names (comp, vert, frag, ...)
-            case "$STAGE" in
-                compute)     STAGE="comp" ;;
-                vertex)      STAGE="vert" ;;
-                fragment)    STAGE="frag" ;;
-                geometry)    STAGE="geom" ;;
-                tesscontrol) STAGE="tesc" ;;
-                tesseval)    STAGE="tese" ;;
-            esac
-            ;;
-        --target-env=*)   TARGET_ENV="${1#--target-env=}" ;;
-        -o)               shift; OUTPUT="$1" ;;
-        -I*|-D*)          ARGS+=("$1") ;;
-        -O|-O0|-O1|-O2|-MD|-MP|-Werror) ;;
-        -MF|-MT|-x)       shift ;;
-        --)               shift; INPUTS+=("$@"); break ;;
-        -*)               ;;
-        *)                INPUTS+=("$1") ;;
-    esac
-    shift
-done
-[[ -n "$TARGET_ENV" ]] && ARGS+=("--target-env" "$TARGET_ENV")
-[[ -n "$STAGE" ]]      && ARGS+=("-S" "$STAGE")
-[[ -n "$OUTPUT" ]]     && ARGS+=("-o" "$OUTPUT")
-ARGS+=("${INPUTS[@]}")
-# vulkan-shaders-gen treats ANY stderr output as a compilation failure (even
-# warnings).  glslangValidator writes informational/warning text to stderr on
-# success, while real glslc is silent.  Suppress stderr when the compilation
-# succeeds so that vulkan-shaders-gen correctly picks up the compiled SPIR-V.
-_stderr_tmp=$(mktemp)
-/usr/bin/glslangValidator "${ARGS[@]}" 2>"$_stderr_tmp"
-_rc=$?
-[ $_rc -ne 0 ] && cat "$_stderr_tmp" >&2
-rm -f "$_stderr_tmp"
-exit $_rc
-GLSLC_SHIM_EOF
-chmod +x %{_builddir}/glslc-shim/glslc
-export PATH="%{_builddir}/glslc-shim:${PATH}"
-
 %cmake \
     -DGGML_VULKAN=ON \
     -DLLAMA_CURL=ON \
@@ -95,10 +44,15 @@ export PATH="%{_builddir}/glslc-shim:${PATH}"
 %install
 %cmake_install
 
-# Remove devel files (headers, cmake configs, unversioned .so symlinks)
+# Remove devel files (headers, cmake configs, unversioned .so symlinks, pkgconfig)
 rm -rf %{buildroot}%{_includedir}
 rm -rf %{buildroot}%{_libdir}/cmake
+rm -rf %{buildroot}%{_libdir}/pkgconfig
 find %{buildroot}%{_libdir} -name '*.so' -delete
+
+# Remove test binaries and conversion scripts not needed at runtime
+rm -f %{buildroot}%{_bindir}/test-*
+rm -f %{buildroot}%{_bindir}/convert_hf_to_gguf.py
 
 %files
 %license LICENSE
