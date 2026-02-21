@@ -35,6 +35,7 @@ Shared libraries for llama.cpp, including the Vulkan compute backend.
 
 %build
 %cmake \
+    -DGGML_NATIVE=OFF \
     -DGGML_VULKAN=ON \
     -DLLAMA_CURL=ON \
     -DBUILD_SHARED_LIBS=ON \
