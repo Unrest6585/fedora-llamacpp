@@ -12,7 +12,7 @@ Automated builds of [llama.cpp](https://github.com/ggerganov/llama.cpp) for Fedo
 ## Installation
 
 ```bash
-sudo dnf copr enable YOUR_USERNAME/llama-cpp-vulkan
+sudo dnf copr enable sneed/llama-cpp-vulkan
 sudo dnf install llama-cpp
 ```
 
@@ -62,7 +62,7 @@ Add these to your repository (Settings → Secrets and variables → Actions):
 sudo dnf install rpm-build rpmdevtools wget python3
 
 # Clone this repository
-git clone https://github.com/YOUR_USERNAME/fedora-llamacpp.git
+git clone https://github.com/sneed/fedora-llamacpp.git
 cd fedora-llamacpp
 
 # Run the build script
