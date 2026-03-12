@@ -41,7 +41,7 @@ jobs:
       should_build: ${{ steps.check.outputs.should_build }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check for new llama.cpp release
         id: check
@@ -100,7 +100,7 @@ jobs:
             wget
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup RPM build tree
         run: rpmdev-setuptree
@@ -129,7 +129,7 @@ jobs:
           echo "BUILT_SRPM=$(basename ${SRPM})" >> $GITHUB_ENV
 
       - name: Upload SRPM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: llama-cpp-srpm
           path: "*.src.rpm"
