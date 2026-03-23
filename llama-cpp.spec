@@ -64,9 +64,9 @@ rm -rf %{buildroot}%{_libdir}/cmake
 rm -rf %{buildroot}%{_libdir}/pkgconfig
 find %{buildroot}%{_libdir} -name '*.so' -delete
 
-# Remove test binaries and conversion scripts not needed at runtime
-rm -f %{buildroot}%{_bindir}/test-*
-rm -f %{buildroot}%{_bindir}/convert_hf_to_gguf.py
+# Remove everything except llama-* binaries (test-*, convert scripts, and any
+# other upstream tools that don't match our package's file list)
+find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 
 %post libs -p /sbin/ldconfig
 %postun libs -p /sbin/ldconfig
