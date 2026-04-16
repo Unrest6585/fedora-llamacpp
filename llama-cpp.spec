@@ -15,6 +15,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  ninja-build
 BuildRequires:  vulkan-devel
 BuildRequires:  glslc
+BuildRequires:  spirv-headers-devel
 BuildRequires:  libcurl-devel
 
 Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
@@ -81,3 +82,7 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %dir %{_privlibdir}
 %{_privlibdir}/lib*.so.*
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
+
+%changelog
+* Thu Apr 16 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
+- Add missing SPIR-V headers build dependency for Vulkan builds
