@@ -53,17 +53,26 @@ Installed to a private directory to avoid conflicts with other ggml consumers.
 # Move all shared libraries to private directory to avoid conflicts with
 # other ggml consumers (e.g. whisper-cpp-libs) that ship the same libggml*.so
 mkdir -p %{buildroot}%{_privlibdir}
+# Versioned libraries (libggml.so.0, libllama.so.0, ...) and their soname symlinks.
 mv %{buildroot}%{_libdir}/lib*.so.* %{buildroot}%{_privlibdir}/
+# Upstream (>= b9294) builds each CLI tool as an unversioned shared library
+# (libllama-cli-impl.so, libllama-server-impl.so, ...) whose SONAME is the bare
+# filename. These are real runtime libraries, not devel symlinks, so move them
+# too -- otherwise the launcher binaries are left with unsatisfiable Requires.
+find %{buildroot}%{_libdir} -maxdepth 1 -type f -name '*.so' -exec mv -t %{buildroot}%{_privlibdir}/ {} +
 
 # ld.so.conf drop-in so the dynamic linker finds our private libs
 mkdir -p %{buildroot}%{_sysconfdir}/ld.so.conf.d
 echo %{_privlibdir} > %{buildroot}%{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
-# Remove devel files (headers, cmake configs, unversioned .so symlinks, pkgconfig)
+# Remove devel files (headers, cmake configs, unversioned .so symlinks, pkgconfig).
+# Only delete symlinks here: the real .so runtime libraries were moved to the
+# private directory above, so anything matching *.so left in %{_libdir} is a
+# devel symlink (e.g. libggml.so -> libggml.so.0).
 rm -rf %{buildroot}%{_includedir}
 rm -rf %{buildroot}%{_libdir}/cmake
 rm -rf %{buildroot}%{_libdir}/pkgconfig
-find %{buildroot}%{_libdir} -name '*.so' -delete
+find %{buildroot}%{_libdir} -type l -name '*.so' -delete
 
 # Remove everything except llama-* binaries (test-*, convert scripts, and any
 # other upstream tools that don't match our package's file list)
@@ -80,9 +89,13 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %files libs
 %license LICENSE
 %dir %{_privlibdir}
-%{_privlibdir}/lib*.so.*
+%{_privlibdir}/lib*.so*
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
 %changelog
+* Fri May 29 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
+- Package unversioned libllama-*-impl.so tool libraries (upstream >= b9294)
+  in -libs; only delete devel .so symlinks so launcher binaries resolve
+
 * Thu Apr 16 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
 - Add missing SPIR-V headers build dependency for Vulkan builds

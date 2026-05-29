@@ -43,11 +43,15 @@ Shared libraries for llama.cpp, including the ROCm compute backend.
 %install
 %cmake_install
 
-# Remove devel files (headers, cmake configs, unversioned .so symlinks, pkgconfig)
+# Remove devel files (headers, cmake configs, unversioned .so symlinks, pkgconfig).
+# Only delete symlinks: upstream (>= b9294) ships each CLI tool as an unversioned
+# shared library (libllama-cli-impl.so, ...) whose SONAME is the bare filename.
+# Those are real runtime libraries the launcher binaries link against, so they
+# must be kept; only the devel symlinks (libggml.so -> libggml.so.0) are removed.
 rm -rf %{buildroot}%{_includedir}
 rm -rf %{buildroot}%{_libdir}/cmake
 rm -rf %{buildroot}%{_libdir}/pkgconfig
-find %{buildroot}%{_libdir} -name '*.so' -delete
+find %{buildroot}%{_libdir} -type l -name '*.so' -delete
 
 # Remove test binaries and conversion scripts not needed at runtime
 rm -f %{buildroot}%{_bindir}/test-*
@@ -60,4 +64,4 @@ rm -f %{buildroot}%{_bindir}/convert_hf_to_gguf.py
 
 %files libs
 %license LICENSE
-%{_libdir}/lib*.so.*
+%{_libdir}/lib*.so*
