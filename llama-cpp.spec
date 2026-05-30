@@ -2,6 +2,11 @@
 # For local builds, run build.sh which patches this line automatically.
 %define _privlibdir %{_libdir}/%{name}
 
+# Numeric build number derived from the bXXXX release tag (e.g. b9413 -> 9413).
+# We build from a release tarball, which has no .git, so llama.cpp's cmake would
+# otherwise stamp the binaries as "version: 0 (unknown)". Feed it explicitly.
+%define llama_build_number %(echo %{version} | sed 's/^b//')
+
 Name:           llama-cpp
 Version:        b0
 Release:        1%{?dist}
@@ -41,9 +46,14 @@ Installed to a private directory to avoid conflicts with other ggml consumers.
 %cmake \
     -DGGML_NATIVE=OFF \
     -DGGML_VULKAN=ON \
+    -DGGML_BACKEND_DL=ON \
+    -DGGML_CPU_ALL_VARIANTS=ON \
     -DLLAMA_CURL=ON \
+    -DLLAMA_BUILD_NUMBER=%{llama_build_number} \
+    -DLLAMA_BUILD_COMMIT=%{version} \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_RPATH=%{_privlibdir} \
+    -DGGML_BACKEND_DIR=%{_privlibdir} \
     -G Ninja
 %cmake_build
 
@@ -93,6 +103,13 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
 %changelog
+* Fri May 30 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
+- Stamp build version from the release tag (LLAMA_BUILD_NUMBER/COMMIT) so
+  --version reports the build instead of "0 (unknown)"
+- Build portable CPU backends via GGML_BACKEND_DL + GGML_CPU_ALL_VARIANTS,
+  loaded from the private dir (GGML_BACKEND_DIR), for near-native CPU speed
+  on any x86-64 while staying portable
+
 * Fri May 29 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
 - Package unversioned libllama-*-impl.so tool libraries (upstream >= b9294)
   in -libs; only delete devel .so symlinks so launcher binaries resolve

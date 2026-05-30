@@ -1,5 +1,11 @@
 # Version is set to the upstream release tag (e.g. b5153) by the build workflow.
 # For local builds, run build-rocm.sh which patches this line automatically.
+
+# Numeric build number derived from the bXXXX release tag (e.g. b9413 -> 9413).
+# We build from a release tarball, which has no .git, so llama.cpp's cmake would
+# otherwise stamp the binaries as "version: 0 (unknown)". Feed it explicitly.
+%define llama_build_number %(echo %{version} | sed 's/^b//')
+
 Name:           llama-cpp-rocm
 Version:        b0
 Release:        1%{?dist}
@@ -35,7 +41,11 @@ Shared libraries for llama.cpp, including the ROCm compute backend.
 %cmake \
     -DGGML_NATIVE=OFF \
     -DGGML_HIP=ON \
+    -DGGML_BACKEND_DL=ON \
+    -DGGML_CPU_ALL_VARIANTS=ON \
     -DLLAMA_CURL=ON \
+    -DLLAMA_BUILD_NUMBER=%{llama_build_number} \
+    -DLLAMA_BUILD_COMMIT=%{version} \
     -DBUILD_SHARED_LIBS=ON \
     -G Ninja
 %cmake_build
