@@ -14,6 +14,9 @@ Summary:        LLM inference engine in C/C++ with Vulkan GPU acceleration
 License:        MIT
 URL:            https://github.com/ggml-org/llama.cpp
 Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/%{version}.tar.gz
+# Prebuilt web UI assets, shipped as a release artifact alongside each tag.
+# Bundled into the SRPM so %%build never fetches the UI over the network (see %%prep).
+Source1:        https://github.com/ggml-org/llama.cpp/releases/download/%{version}/llama-%{version}-ui.tar.gz
 
 BuildRequires:  cmake >= 3.14
 BuildRequires:  gcc-c++
@@ -42,6 +45,18 @@ Installed to a private directory to avoid conflicts with other ggml consumers.
 %prep
 %autosetup -n llama.cpp-%{version}
 
+# Pre-stage the prebuilt web UI so the build never fetches it over the network at
+# cmake configure time. Copr builders hit intermittent SSL failures talking to
+# huggingface.co; a partial download leaves a zero-byte asset that makes the
+# generated ui.cpp contain an illegal zero-size array and breaks the build. We
+# bundle the upstream UI release artifact (Source1) and drop it into tools/ui/dist
+# so ui-assets.cmake takes its "pre-built assets" path (priority 1) and returns
+# before any download. build.json is the only asset the artifact omits (the npm
+# vite plugin generates it); synthesize it with the build number.
+mkdir -p tools/ui/dist
+tar -xzf %{SOURCE1} -C tools/ui/dist --strip-components=1
+printf '{"version":"%s"}' '%{llama_build_number}' > tools/ui/dist/build.json
+
 %build
 %cmake \
     -DGGML_NATIVE=OFF \
@@ -49,6 +64,7 @@ Installed to a private directory to avoid conflicts with other ggml consumers.
     -DGGML_BACKEND_DL=ON \
     -DGGML_CPU_ALL_VARIANTS=ON \
     -DLLAMA_CURL=ON \
+    -DLLAMA_USE_PREBUILT_UI=OFF \
     -DLLAMA_BUILD_NUMBER=%{llama_build_number} \
     -DLLAMA_BUILD_COMMIT=%{version} \
     -DBUILD_SHARED_LIBS=ON \
@@ -103,7 +119,13 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
 %changelog
-* Fri May 30 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
+* Sat Jun 13 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
+- Bundle the prebuilt web UI (Source1) and stage it into tools/ui/dist in %%prep,
+  and build with -DLLAMA_USE_PREBUILT_UI=OFF, so the build never downloads UI
+  assets at configure time. Fixes intermittent failures where a flaky huggingface
+  download left a zero-byte asset and produced an uncompilable zero-size array.
+
+* Sat May 30 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
 - Stamp build version from the release tag (LLAMA_BUILD_NUMBER/COMMIT) so
   --version reports the build instead of "0 (unknown)"
 - Build portable CPU backends via GGML_BACKEND_DL + GGML_CPU_ALL_VARIANTS,

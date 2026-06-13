@@ -25,6 +25,13 @@ echo "==> Downloading source tarball..."
 wget "https://github.com/ggml-org/llama.cpp/archive/refs/tags/${TAG}.tar.gz" \
   -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
 
+echo "==> Downloading prebuilt web UI artifact..."
+# Bundled into the SRPM (Source1) so the build never fetches the UI over the
+# network at cmake configure time. Retry hard here where the network is reliable.
+wget --tries=5 --retry-connrefused --waitretry=10 \
+  "https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/llama-${TAG}-ui.tar.gz" \
+  -O ~/rpmbuild/SOURCES/llama-${TAG}-ui.tar.gz
+
 echo "==> Copying and versioning spec file..."
 cp "${SCRIPT_DIR}/llama-cpp.spec" ~/rpmbuild/SPECS/
 sed -i "s/^Version:.*/Version:        ${TAG}/" ~/rpmbuild/SPECS/llama-cpp.spec

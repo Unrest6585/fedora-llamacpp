@@ -112,6 +112,17 @@ jobs:
             -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
           echo "Downloaded: ${TAG}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${TAG}.tar.gz | cut -f1))"
 
+      - name: Download prebuilt web UI artifact
+        run: |
+          TAG="${{ needs.check-version.outputs.tag }}"
+          # Bundled into the SRPM (Source1) so the COPR build never fetches the UI
+          # over the network at cmake configure time, where flaky huggingface
+          # downloads can leave a zero-byte asset and break the build.
+          wget --tries=5 --retry-connrefused --waitretry=10 \
+            "https://github.com/${{ env.LLAMA_REPO }}/releases/download/${TAG}/llama-${TAG}-ui.tar.gz" \
+            -O ~/rpmbuild/SOURCES/llama-${TAG}-ui.tar.gz
+          echo "Downloaded: llama-${TAG}-ui.tar.gz ($(du -sh ~/rpmbuild/SOURCES/llama-${TAG}-ui.tar.gz | cut -f1))"
+
       - name: Copy and version spec file
         run: |
           cp $GITHUB_WORKSPACE/llama-cpp.spec ~/rpmbuild/SPECS/
