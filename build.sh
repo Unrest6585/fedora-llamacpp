@@ -6,17 +6,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/build"
 
 echo "==> Fetching latest llama.cpp release tag..."
-TAG=$(curl -sf \
+# /releases/latest now returns a stable meta-release (e.g. v0.2.0) whose
+# nightly-tag.txt asset pins the actual bXXXX build tag; the bXXXX releases
+# themselves are marked prerelease and no longer surface via /releases/latest.
+META_TAG=$(curl -sf \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/ggml-org/llama.cpp/releases/latest \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
 
-if [ -z "${TAG}" ]; then
+if [ -z "${META_TAG}" ]; then
   echo "Error: Could not determine latest release tag"
   exit 1
 fi
 
-echo "==> Latest release: ${TAG}"
+TAG=$(curl -sfL "https://github.com/ggml-org/llama.cpp/releases/download/${META_TAG}/nightly-tag.txt" | tr -d '[:space:]')
+
+if [[ ! "${TAG}" =~ ^b[0-9]+$ ]]; then
+  echo "Error: nightly-tag.txt from ${META_TAG} did not yield a bXXXX tag (got '${TAG}')"
+  exit 1
+fi
+
+echo "==> Latest release: ${META_TAG} (pinned build: ${TAG})"
 
 mkdir -p "${BUILD_DIR}"
 rpmdev-setuptree

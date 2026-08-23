@@ -48,15 +48,29 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get latest release tag via gh CLI (available on ubuntu-latest runners)
-          TAG=$(gh api repos/${{ env.LLAMA_REPO }}/releases/latest --jq '.tag_name')
+          set -o pipefail
 
-          if [ -z "${TAG}" ] || [ "${TAG}" = "null" ]; then
+          # /releases/latest now returns a stable meta-release (e.g. v0.2.0)
+          # whose nightly-tag.txt asset pins the actual bXXXX build tag; the
+          # bXXXX releases themselves are marked prerelease and no longer
+          # surface via /releases/latest.
+          META_TAG=$(gh api repos/${{ env.LLAMA_REPO }}/releases/latest --jq '.tag_name')
+
+          if [ -z "${META_TAG}" ] || [ "${META_TAG}" = "null" ]; then
             echo "Error: Could not get latest release tag"
             exit 1
           fi
 
-          echo "Latest release: ${TAG}"
+          TAG=$(curl -sfL "https://github.com/${{ env.LLAMA_REPO }}/releases/download/${META_TAG}/nightly-tag.txt" | tr -d '[:space:]')
+
+          # Strict format check: the tag is interpolated into later run steps,
+          # so anything but ^b[0-9]+$ must be rejected.
+          if [[ ! "${TAG}" =~ ^b[0-9]+$ ]]; then
+            echo "Error: nightly-tag.txt from ${META_TAG} did not yield a bXXXX tag (got '${TAG}')"
+            exit 1
+          fi
+
+          echo "Latest release: ${META_TAG} (pinned build: ${TAG})"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
           # Read last built tag from state file
