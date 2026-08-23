@@ -12,3 +12,11 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+.aider*
+.codex
+
+# Local build/debug artifacts
+.rpmbuild/
+builder-live.log*
+llama-*-bin-*
+build-rocm/
