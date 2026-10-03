@@ -31,7 +31,7 @@ env:
   LLAMA_REPO: 'ggml-org/llama.cpp'
   # Space-separated list of chroots to build for.
   # Add new stable releases here as they branch from rawhide.
-  CHROOTS: "fedora-43-x86_64 fedora-44-x86_64 fedora-rawhide-x86_64"
+  CHROOTS: "fedora-43-x86_64 fedora-44-x86_64 fedora-45-x86_64 fedora-rawhide-x86_64"
 
 jobs:
   check-version:

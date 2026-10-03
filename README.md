@@ -1,13 +1,13 @@
 # llama-cpp-vulkan
 
-Automated builds of [llama.cpp](https://github.com/ggerganov/llama.cpp) for Fedora 43, 44, and rawhide, with the Vulkan GPU backend enabled. Tracks upstream releases daily and rebuilds automatically.
+Automated builds of [llama.cpp](https://github.com/ggerganov/llama.cpp) for Fedora 43, 44, 45, and rawhide, with the Vulkan GPU backend enabled. Tracks upstream releases daily and rebuilds automatically.
 
 ## Features
 
 - Vulkan backend enabled (`-DGGML_VULKAN=ON`) — runs on any Vulkan-capable GPU
 - Curl support for llama-server
 - Tracks upstream `bNNNN` releases daily
-- Builds for Fedora 43, 44, and rawhide simultaneously from a single SRPM
+- Builds for Fedora 43, 44, 45, and rawhide simultaneously from a single SRPM
 
 ## Installation
 
@@ -31,6 +31,7 @@ Go to https://copr.fedorainfracloud.org and create a project named `llama-cpp-vu
 When creating the project, enable these chroots:
 - `fedora-43-x86_64`
 - `fedora-44-x86_64`
+- `fedora-45-x86_64`
 - `fedora-rawhide-x86_64`
 
 **Important:** In the project settings, enable **"Follow Fedora branching"**. This makes COPR automatically add the next Fedora chroot (e.g. `fedora-45-x86_64`) when rawhide branches. You then only need to add the new version to `CHROOTS` in `build.yml` to start explicitly targeting it.
@@ -72,6 +73,7 @@ cd fedora-llamacpp
 copr-cli build llama-cpp-vulkan llama-cpp-*.src.rpm \
   --chroot fedora-43-x86_64 \
   --chroot fedora-44-x86_64 \
+  --chroot fedora-45-x86_64 \
   --chroot fedora-rawhide-x86_64 \
   --nowait
 ```
