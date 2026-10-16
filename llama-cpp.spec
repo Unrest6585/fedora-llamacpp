@@ -1,22 +1,24 @@
-# Version is set to the upstream release tag (e.g. b5153) by the build workflow.
-# For local builds, run build.sh which patches this line automatically.
+# Version is set to the upstream stable release (e.g. 0.7.0) and upstream_tag to
+# the bXXXX build that release pins (via its nightly-tag.txt) by the build
+# workflow. For local builds, run build.sh which patches both lines automatically.
+%global upstream_tag b0
 %define _privlibdir %{_libdir}/%{name}
 
 # Numeric build number derived from the bXXXX release tag (e.g. b9413 -> 9413).
 # We build from a release tarball, which has no .git, so llama.cpp's cmake would
 # otherwise stamp the binaries as "version: 0 (unknown)". Feed it explicitly.
-%define llama_build_number %(echo %{version} | sed 's/^b//')
+%define llama_build_number %(echo %{upstream_tag} | sed 's/^b//')
 
 Name:           llama-cpp
-Version:        b0
+Version:        0
 Release:        1%{?dist}
 Summary:        LLM inference engine in C/C++ with Vulkan GPU acceleration
 License:        MIT
 URL:            https://github.com/ggml-org/llama.cpp
-Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/%{version}.tar.gz
+Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/%{upstream_tag}.tar.gz
 # Prebuilt web UI assets, shipped as a release artifact alongside each tag.
 # Bundled into the SRPM so %%build never fetches the UI over the network (see %%prep).
-Source1:        https://github.com/ggml-org/llama.cpp/releases/download/%{version}/llama-%{version}-ui.tar.gz
+Source1:        https://github.com/ggml-org/llama.cpp/releases/download/%{upstream_tag}/llama-%{upstream_tag}-ui.tar.gz
 
 BuildRequires:  cmake >= 3.14
 BuildRequires:  gcc-c++
@@ -43,7 +45,7 @@ Shared libraries for llama.cpp, including the Vulkan compute backend.
 Installed to a private directory to avoid conflicts with other ggml consumers.
 
 %prep
-%autosetup -n llama.cpp-%{version}
+%autosetup -n llama.cpp-%{upstream_tag}
 
 # Pre-stage the prebuilt web UI so the build never fetches it over the network at
 # cmake configure time. Copr builders hit intermittent SSL failures talking to
@@ -66,7 +68,7 @@ printf '{"version":"%s"}' '%{llama_build_number}' > tools/ui/dist/build.json
     -DLLAMA_CURL=ON \
     -DLLAMA_USE_PREBUILT_UI=OFF \
     -DLLAMA_BUILD_NUMBER=%{llama_build_number} \
-    -DLLAMA_BUILD_COMMIT=%{version} \
+    -DLLAMA_BUILD_COMMIT=%{upstream_tag} \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_RPATH=%{_privlibdir} \
     -DGGML_BACKEND_DIR=%{_privlibdir} \
@@ -119,6 +121,11 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
 %changelog
+* Fri Oct 16 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - 0-1
+- Version the package after the upstream stable release (e.g. 0.7.0) instead of
+  the bXXXX build tag; the pinned bXXXX tag is kept in %%{upstream_tag} and still
+  selects the sources and stamps --version.
+
 * Sat Jun 13 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - b0-1
 - Bundle the prebuilt web UI (Source1) and stage it into tools/ui/dist in %%prep,
   and build with -DLLAMA_USE_PREBUILT_UI=OFF, so the build never downloads UI

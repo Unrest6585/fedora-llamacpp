@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
       should_build: ${{ steps.check.outputs.should_build }}
     steps:
       - name: Checkout
@@ -61,6 +62,13 @@ jobs:
             exit 1
           fi
 
+          # Strict format check: the version is interpolated into later run steps.
+          if [[ ! "${META_TAG}" =~ ^v[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "Error: latest release tag '${META_TAG}' is not a vX.Y.Z version"
+            exit 1
+          fi
+          VERSION="${META_TAG#v}"
+
           TAG=$(curl -sfL "https://github.com/${{ env.LLAMA_REPO }}/releases/download/${META_TAG}/nightly-tag.txt" | tr -d '[:space:]')
 
           # Strict format check: the tag is interpolated into later run steps,
@@ -72,6 +80,7 @@ jobs:
 
           echo "Latest release: ${META_TAG} (pinned build: ${TAG})"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
           # Read last built tag from state file
           LAST_TAG=""
@@ -141,7 +150,9 @@ jobs:
         run: |
           cp $GITHUB_WORKSPACE/llama-cpp.spec ~/rpmbuild/SPECS/
           # Hardcode the version into the spec so it survives COPR's SRPM rebuild
-          sed -i "s/^Version:.*/Version:        ${{ needs.check-version.outputs.tag }}/" \
+          sed -i \
+            -e "s/^Version:.*/Version:        ${{ needs.check-version.outputs.version }}/" \
+            -e "s/^%global upstream_tag .*/%global upstream_tag ${{ needs.check-version.outputs.tag }}/" \
             ~/rpmbuild/SPECS/llama-cpp.spec
 
       - name: Build SRPM
@@ -173,8 +184,8 @@ jobs:
           gh release delete "${TAG}" --yes 2>/dev/null || true
           gh release create "${TAG}" \
             --target main \
-            --title "llama-cpp ${TAG}" \
-            --notes "Source RPM for llama-cpp ${TAG}" \
+            --title "llama-cpp ${{ needs.check-version.outputs.version }} (${TAG})" \
+            --notes "Source RPM for llama-cpp ${{ needs.check-version.outputs.version }} (upstream build ${TAG})" \
             "${SRPM}"
           # Construct the download URL directly — deterministic, no JSON parsing
           SRPM_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${{ env.BUILT_SRPM }}"
@@ -226,6 +237,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No state change to commit"
           else
-            git commit -m "state: update to ${{ needs.check-version.outputs.tag }}"
+            git commit -m "state: update to ${{ needs.check-version.outputs.version }} (${{ needs.check-version.outputs.tag }})"
             git push
           fi

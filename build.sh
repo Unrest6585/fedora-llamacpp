@@ -19,6 +19,12 @@ if [ -z "${META_TAG}" ]; then
   exit 1
 fi
 
+if [[ ! "${META_TAG}" =~ ^v[0-9]+(\.[0-9]+)*$ ]]; then
+  echo "Error: latest release tag '${META_TAG}' is not a vX.Y.Z version"
+  exit 1
+fi
+VERSION="${META_TAG#v}"
+
 TAG=$(curl -sfL "https://github.com/ggml-org/llama.cpp/releases/download/${META_TAG}/nightly-tag.txt" | tr -d '[:space:]')
 
 if [[ ! "${TAG}" =~ ^b[0-9]+$ ]]; then
@@ -44,7 +50,10 @@ wget --tries=5 --retry-connrefused --waitretry=10 \
 
 echo "==> Copying and versioning spec file..."
 cp "${SCRIPT_DIR}/llama-cpp.spec" ~/rpmbuild/SPECS/
-sed -i "s/^Version:.*/Version:        ${TAG}/" ~/rpmbuild/SPECS/llama-cpp.spec
+sed -i \
+  -e "s/^Version:.*/Version:        ${VERSION}/" \
+  -e "s/^%global upstream_tag .*/%global upstream_tag ${TAG}/" \
+  ~/rpmbuild/SPECS/llama-cpp.spec
 
 echo "==> Building SRPM..."
 rpmbuild -bs ~/rpmbuild/SPECS/llama-cpp.spec
