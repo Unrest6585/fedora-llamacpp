@@ -1,12 +1,12 @@
 # llama-cpp-vulkan
 
-Automated builds of [llama.cpp](https://github.com/ggerganov/llama.cpp) for Fedora 43, 44, 45, and rawhide, with the Vulkan GPU backend enabled. Tracks upstream releases daily and rebuilds automatically.
+Automated builds of [llama.cpp](https://github.com/ggerganov/llama.cpp) for Fedora 43, 44, 45, and rawhide, with the Vulkan GPU backend enabled. Tracks upstream stable releases and rebuilds automatically when a new one is published.
 
 ## Features
 
 - Vulkan backend enabled (`-DGGML_VULKAN=ON`) — runs on any Vulkan-capable GPU
 - Curl support for llama-server
-- Tracks upstream `bNNNN` releases daily
+- Tracks upstream stable releases (`vX.Y.Z`), building the `bNNNN` build each release pins; packages are versioned after the release (e.g. `llama-cpp-0.7.0`)
 - Builds for Fedora 43, 44, 45, and rawhide simultaneously from a single SRPM
 
 ## Installation
@@ -52,7 +52,7 @@ Add these to your repository (Settings → Secrets and variables → Actions):
 
 ### 4. Workflow triggers
 
-- **Daily** at 6 AM UTC — checks for new upstream releases
+- **Daily** at 6 AM UTC — checks for a new upstream stable release (builds only when one appears, typically every 1–3 weeks)
 - **On push** to `llama-cpp.spec` or workflow files — rebuilds with spec changes
 - **Manually** via workflow_dispatch (with optional force build)
 
