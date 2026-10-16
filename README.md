@@ -63,7 +63,7 @@ Add these to your repository (Settings → Secrets and variables → Actions):
 sudo dnf install rpm-build rpmdevtools wget python3
 
 # Clone this repository
-git clone https://github.com/sneed/fedora-llamacpp.git
+git clone https://github.com/Unrest6585/fedora-llamacpp.git
 cd fedora-llamacpp
 
 # Run the build script
