@@ -130,10 +130,11 @@ jobs:
 
       - name: Download llama.cpp source tarball
         run: |
-          TAG="${{ needs.check-version.outputs.tag }}"
-          wget "https://github.com/${{ env.LLAMA_REPO }}/archive/refs/tags/${TAG}.tar.gz" \
-            -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
-          echo "Downloaded: ${TAG}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${TAG}.tar.gz | cut -f1))"
+          # Stable release tag (vX.Y.Z); same commit as the pinned bXXXX build
+          SRC="v${{ needs.check-version.outputs.version }}"
+          wget "https://github.com/${{ env.LLAMA_REPO }}/archive/refs/tags/${SRC}.tar.gz" \
+            -O ~/rpmbuild/SOURCES/${SRC}.tar.gz
+          echo "Downloaded: ${SRC}.tar.gz ($(du -sh ~/rpmbuild/SOURCES/${SRC}.tar.gz | cut -f1))"
 
       - name: Download prebuilt web UI artifact
         run: |

@@ -38,8 +38,8 @@ mkdir -p "${BUILD_DIR}"
 rpmdev-setuptree
 
 echo "==> Downloading source tarball..."
-wget "https://github.com/ggml-org/llama.cpp/archive/refs/tags/${TAG}.tar.gz" \
-  -O ~/rpmbuild/SOURCES/${TAG}.tar.gz
+wget "https://github.com/ggml-org/llama.cpp/archive/refs/tags/${META_TAG}.tar.gz" \
+  -O ~/rpmbuild/SOURCES/${META_TAG}.tar.gz
 
 echo "==> Downloading prebuilt web UI artifact..."
 # Bundled into the SRPM (Source1) so the build never fetches the UI over the

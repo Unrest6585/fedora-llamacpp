@@ -11,11 +11,11 @@
 
 Name:           llama-cpp
 Version:        0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        LLM inference engine in C/C++ with Vulkan GPU acceleration
 License:        MIT
 URL:            https://github.com/ggml-org/llama.cpp
-Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/%{upstream_tag}.tar.gz
+Source0:        https://github.com/ggml-org/llama.cpp/archive/refs/tags/v%{version}.tar.gz
 # Prebuilt web UI assets, shipped as a release artifact alongside each tag.
 # Bundled into the SRPM so %%build never fetches the UI over the network (see %%prep).
 Source1:        https://github.com/ggml-org/llama.cpp/releases/download/%{upstream_tag}/llama-%{upstream_tag}-ui.tar.gz
@@ -45,7 +45,7 @@ Shared libraries for llama.cpp, including the Vulkan compute backend.
 Installed to a private directory to avoid conflicts with other ggml consumers.
 
 %prep
-%autosetup -n llama.cpp-%{upstream_tag}
+%autosetup -n llama.cpp-%{version}
 
 # Pre-stage the prebuilt web UI so the build never fetches it over the network at
 # cmake configure time. Copr builders hit intermittent SSL failures talking to
@@ -67,6 +67,7 @@ printf '{"version":"%s"}' '%{llama_build_number}' > tools/ui/dist/build.json
     -DGGML_CPU_ALL_VARIANTS=ON \
     -DLLAMA_CURL=ON \
     -DLLAMA_USE_PREBUILT_UI=OFF \
+    -DLLAMA_BUILD_IS_DEV=OFF \
     -DLLAMA_BUILD_NUMBER=%{llama_build_number} \
     -DLLAMA_BUILD_COMMIT=%{upstream_tag} \
     -DBUILD_SHARED_LIBS=ON \
@@ -121,6 +122,11 @@ find %{buildroot}%{_bindir} -type f ! -name 'llama-*' -delete
 %{_sysconfdir}/ld.so.conf.d/%{name}.conf
 
 %changelog
+* Fri Oct 16 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - 0-2
+- Build from the vX.Y.Z release tarball and pass -DLLAMA_BUILD_IS_DEV=OFF, per
+  upstream's packaging guidance (docs/release.md), so the version is reported as
+  X.Y.Z instead of X.Y.Z-dev
+
 * Fri Oct 16 2026 Unrest6585 <128709964+Unrest6585@users.noreply.github.com> - 0-1
 - Version the package after the upstream stable release (e.g. 0.7.0) instead of
   the bXXXX build tag; the pinned bXXXX tag is kept in %%{upstream_tag} and still
